@@ -1,0 +1,253 @@
+{
+  "version": "1.0",
+  "description": "SecureGit - Integrated Configuration",
+  "timestamp": "2026-04-28",
+  
+  "git": {
+    "description": "Git repository configuration",
+    "requireUserConfig": true,
+    "defaultUser": {
+      "name": "",
+      "email": ""
+    },
+    "signing": {
+      "enabled": true,
+      "program": "gpg",
+      "format": "openpgp"
+    }
+  },
+
+  "gpg": {
+    "description": "GPG key and signing configuration",
+    "enabled": true,
+    "keyIdFormat": "LONG",
+    "trustModel": "always",
+    "signCommits": true,
+    "signTags": true,
+    "verifySignatures": true,
+    "autoKeyTrust": false,
+    "keyserver": "hkps://keys.openpgp.org",
+    "timeout": 30
+  },
+
+  "policies": {
+    "description": "SecureGit security policies",
+    "requireSignatures": {
+      "enabled": true,
+      "description": "All commits must be GPG signed",
+      "enforceOnPush": true,
+      "enforceOnCommit": true
+    },
+ "commitMessage": {
+      "enabled": true,
+      "pattern": "^(feat|fix|docs|style|refactor|test|chore)(\\(.+\\))?: .{10,}",
+      "minLength": 10,
+      "maxLength": 100,
+      "description": "Enforce conventional commit format"
+    },
+    "authorVerification": {
+      "enabled": true,
+      "description": "Verify commits are from authorized authors",
+      "authorizedAuthorsFile": ".authorized-authors",
+      "allowUnauthorized": false
+    },
+    "signatureVerification": {
+      "enabled": true,
+      "description": "Verify GPG signatures are valid",
+      "acceptUntrusted": false,
+      "acceptExpired": false
+    },
+    "branchProtection": {
+      "enabled": true,
+      "protectedBranches": ["main", "master", "develop"],
+      "requireSignatures": true,
+      "requireReleaseReview": false
+    }
+  },
+
+  "logging": {
+    "description": "Logging configuration",
+    "enabled": true,
+    "level": "INFO",
+    "levels": {
+      "DEBUG": 0,
+      "INFO": 1,
+      "WARN": 2,
+      "ERROR": 3
+    },
+    "logFile": "logs/securegit.log.sh",
+    "maxFileSize": 10485760,
+    "maxBackupFiles": 5,
+    "logToStderr": true,
+    "logToStdout": false,
+    "timestamps": true,
+    "verbosity": "medium"
+  },
+
+  "hooks": {
+    "description": "Git hooks configuration",
+    "preCommit": {
+      "enabled": true,
+      "checkSignature": true,
+      "validateMessage": true,
+      "checkAuthor": true,
+      "failOnError": false
+    },
+    "prePush": {
+      "enabled": true,
+      "verifyBranch": true,
+      "verifySignatures": true,
+      "preventForcePush": true,
+      "failOnError": false
+    },
+    "postReceive": {
+      "enabled": false,
+      "auditLog": true
+    }
+  },
+
+  "audit": {
+    "description": "Audit and compliance settings",
+    "enabled": true,
+    "logAuditEvents": true,
+    "auditLog": "logs/audit.log",
+    "trackCommits": true,
+    "trackKeyManagement": true,
+    "trackConfigChanges": true,
+    "retentionDays": 90,
+    "complianceChecks": {
+      "runOnInit": true,
+      "runOnPush": true,
+      "runOnSchedule": false,
+      "scheduleInterval": "weekly"
+    }
+  },
+
+  "cli": {
+    "description": "CLI commands configuration",
+    "commands": {
+      "init": {
+        "enabled": true,
+        "description": "Initialize SecureGit in repository",
+        "createConfig": true,
+        "installHooks": true,
+        "createAuthorsFile": true
+      },
+      "addKey": {
+        "enabled": true,
+        "description": "Manage GPG keys",
+        "autoListKeys": false,
+        "autoTrust": false
+      },
+      "commit": {
+        "enabled": true,
+        "description": "Make signed commits",
+        "requireMessage": true,
+        "validateMessage": true,
+        "autoSign": true
+      },
+      "verify": {
+        "enabled": true,
+        "description": "Verify commit signatures",
+        "defaultCommit": "HEAD",
+        "generateReport": false
+      },
+      "audit": {
+        "enabled": true,
+        "description": "Audit repository compliance",
+        "autoReport": false,
+        "autoScan": false
+      }
+    },
+    "defaultBehavior": "strict",
+    "interactiveMode": true,
+    "verbose": false
+  },
+
+  "security": {
+    "description": "Security and access control",
+    "enabledFeatures": [
+      "commit-signing",
+      "signature-verification",
+      "author-validation",
+      "policy-enforcement",
+      "audit-logging"
+    ],
+    "restrictedOperations": [
+      "force-push",
+      "history-rewrite",
+      "deleteProtectedBranches"
+    ],
+    "requireAdmin": {
+      "disableHooks": true,
+      "disablePolicies": true,
+      "bypassSignatures": true
+    }
+  },
+
+  "notificationDefaults": {
+    "enabled": false,
+    "onSignatureFailure": false,
+    "onPolicyViolation": false,
+    "onAuditAlert": false,
+    "method": "log"
+  },
+
+  "integration": {
+    "description": "Integration with other tools",
+    "gitHubIntegration": {
+      "enabled": false,
+      "verifySignatures": true
+    },
+    "ciCdPipeline": {
+      "enabled": false,
+      "enforceSignatures": true
+    },
+    "webhooks": {
+      "enabled": false
+    }
+  },
+
+  "modules": {
+    "description": "Loaded library modules",
+    "paths": {
+      "log": "lib/log.sh",
+      "gitUtils": "lib/git_utils.sh",
+      "gpgUtils": "lib/gpg_utils.sh",
+      "verify": "lib/verify.sh"
+    },
+    "autoLoad": true,
+    "validateOnLoad": true
+  },
+
+  "environments": {
+    "development": {
+      "logLevel": "DEBUG",
+      "strictMode": false,
+      "autoCommit": false,
+      "validateOnCommit": true
+    },
+    "staging": {
+      "logLevel": "INFO",
+      "strictMode": true,
+      "autoCommit": false,
+      "validateOnCommit": true
+    },
+    "production": {
+      "logLevel": "WARN",
+      "strictMode": true,
+      "autoCommit": false,
+      "validateOnCommit": true,
+      "requireApproval": true
+    }
+  },
+
+  "defaults": {
+    "commitTemplate": ".gitmessage",
+    "ignoreFile": ".gitignore",
+    "attributesFile": ".gitattributes",
+    "configFile": ".securegit-config",
+    "authorizedAuthorsFile": ".authorized-authors",
+    "policyFile": ".securegit-policy"
+  }
+}
