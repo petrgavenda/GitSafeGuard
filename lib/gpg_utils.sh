@@ -135,16 +135,16 @@ gpg_sign_commit() {
         return 1
     fi
 
-    # Build gpg-sign command
-    local gpg_cmd="git commit --amend --no-edit"
+    # Build gpg-sign command as an array to prevent quoting issues
+    local gpg_cmd=(git commit --amend --no-edit)
     
     if [[ -n "$key_id" ]]; then
-        gpg_cmd="$gpg_cmd --gpg-sign=$key_id"
+        gpg_cmd+=(--gpg-sign="$key_id")
     else
-        gpg_cmd="$gpg_cmd -S"
+        gpg_cmd+=(-S)
     fi
 
-    if eval "$gpg_cmd" 2>/dev/null; then
+    if "${gpg_cmd[@]}" 2>/dev/null; then
         log_info "Commit signed successfully: $commit"
         return 0
     else

@@ -157,14 +157,14 @@ verify_branch_history() {
     local all_valid=true
     local checked=0
 
-    # Get commits to check
-    local log_cmd="git log --pretty=format:%H"
+    # Get commits to check using an array
+    local log_cmd=(git log --pretty=format:%H)
     
     if [[ -n "$num_commits" ]]; then
-        log_cmd="$log_cmd -n $num_commits"
+        log_cmd+=(-n "$num_commits")
     fi
 
-    log_cmd="$log_cmd $branch"
+    log_cmd+=("$branch")
 
     # Check each commit
     while read -r commit; do
@@ -173,7 +173,7 @@ verify_branch_history() {
             log_error "Invalid signature on commit: $commit"
         fi
         ((checked++))
-    done < <(eval "$log_cmd")
+    done < <("${log_cmd[@]}")
 
     if [[ $checked -eq 0 ]]; then
         log_error "No commits found on branch: $branch"
@@ -282,13 +282,13 @@ verify_unsigned_commits() {
     local unsigned_count=0
     local total=0
 
-    local log_cmd="git log --pretty=format:%H:%ae:%s"
+    local log_cmd=(git log --pretty=format:%H:%ae:%s)
     
     if [[ -n "$num_commits" ]]; then
-        log_cmd="$log_cmd -n $num_commits"
+        log_cmd+=(-n "$num_commits")
     fi
 
-    log_cmd="$log_cmd $branch 2>/dev/null"
+    log_cmd+=("$branch")
 
     echo "Scanning commits for signatures..."
 
@@ -302,7 +302,7 @@ verify_unsigned_commits() {
             echo "  [UNSIGNED] $commit - $author - $subject"
             log_warn "Unsigned commit: $commit"
         fi
-    done < <(eval "$log_cmd")
+    done < <("${log_cmd[@]}" 2>/dev/null)
 
     echo ""
     echo "Results: $total commits checked, $unsigned_count unsigned"

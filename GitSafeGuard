@@ -1,0 +1,66 @@
+#!/bin/bash
+
+# gitsafeguard - Main Entry Script for GitSafeGuard
+# Dispatches commands to the appropriate module in commands/
+
+set -u
+
+# Resolve the directory of this script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+COMMANDS_DIR="$SCRIPT_DIR/commands"
+
+# Display usage information
+show_help() {
+    cat << EOF
+GitSafeGuard - GPG-signed Git workflows and repository audits
+
+Usage: ./GitSafeGuard <command> [options]
+
+Commands:
+  init        Initialize GitSafeGuard in a repository
+  add-key     Manage GPG keys
+  commit      Make secure signed commits
+  verify      Verify commit signatures and compliance
+  audit       Audit repository for compliance
+
+Run './GitSafeGuard <command> --help' for more information on a specific command.
+EOF
+}
+
+# Verify we have a command
+if [[ $# -eq 0 ]]; then
+    show_help
+    exit 1
+fi
+
+COMMAND="$1"
+shift
+
+# Dispatch to the appropriate command script
+case "$COMMAND" in
+    init)
+        exec "$COMMANDS_DIR/init.sh" "$@"
+        ;;
+    add-key)
+        exec "$COMMANDS_DIR/add-key.sh" "$@"
+        ;;
+    commit)
+        exec "$COMMANDS_DIR/commit.sh" "$@"
+        ;;
+    verify)
+        exec "$COMMANDS_DIR/verify.sh" "$@"
+        ;;
+    audit)
+        exec "$COMMANDS_DIR/audit.sh" "$@"
+        ;;
+    -h|--help)
+        show_help
+        exit 0
+        ;;
+    *)
+        echo "Error: Unknown command '$COMMAND'" >&2
+        echo ""
+        show_help
+        exit 1
+        ;;
+esac

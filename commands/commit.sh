@@ -222,17 +222,17 @@ make_commit() {
 
     log_info "Creating signed commit..."
 
-    # Build commit command
-    local commit_cmd="git commit -S"
+    # Build commit command as an array to handle spaces securely
+    local commit_cmd=(git commit -S)
     
     if [[ -n "$KEY" ]]; then
-        commit_cmd="$commit_cmd --gpg-sign=$KEY"
+        commit_cmd+=(--gpg-sign="$KEY")
     fi
 
-    commit_cmd="$commit_cmd -m \"$message\""
+    commit_cmd+=(-m "$message")
 
     # Execute commit
-    if eval "$commit_cmd"; then
+    if "${commit_cmd[@]}"; then
         log_info "Commit created successfully"
         
         # Show commit info

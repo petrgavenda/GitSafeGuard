@@ -1,0 +1,51 @@
+#!/bin/bash
+
+# GitSafeGuard pre-push hook
+# Intercepts git push to ensure all outgoing commits have a valid GPG signature.
+
+echo "GitSafeGuard [pre-push]: Verifying signatures of outgoing commits..."
+
+z40="0000000000000000000000000000000000000000"
+
+while read local_ref local_sha remote_ref remote_sha
+do
+    # Skip deletion of a branch
+    if [ "$local_sha" = "$z40" ]; then
+        continue
+    fi
+
+    # Determine range of commits to check
+    if [ "$remote_sha" = "$z40" ]; then
+        # New branch push - check all commits not in any remote
+        range="$local_sha --not --remotes"
+    else
+        # Updating an existing branch
+        range="$remote_sha..$local_sha"
+    fi
+
+    # Get all commits in range
+    commits=$(git rev-list $range 2>/dev/null)
+    
+    for commit in $commits
+    do
+        # %G? returns the signature status: G (Good), B (Bad), U (Untrusted), N (No signature), etc.
+        sig_status=$(git log -1 --pretty=format:"%G?" "$commit")
+        author=$(git log -1 --pretty=format:"%an <%ae>" "$commit")
+        subject=$(git log -1 --pretty=format:"%s" "$commit")
+        
+        if [[ "$sig_status" != "G" && "$sig_status" != "U" ]]; then
+            echo ""
+            echo "❌ Error: Invalid or missing GPG signature found on outgoing commit!"
+            echo "   Commit: $commit"
+            echo "   Author: $author"
+            echo "   Subject: $subject"
+            echo "   Status: $sig_status (Must be G or U)"
+            echo "   -> Push aborted by GitSafeGuard."
+            echo ""
+            exit 1
+        fi
+    done
+done
+
+echo "✅ GitSafeGuard [pre-push]: All outgoing commits are securely signed."
+exit 0
