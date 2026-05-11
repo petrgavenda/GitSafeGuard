@@ -8,6 +8,14 @@ set -u
 # Resolve the directory of this script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMMANDS_DIR="$SCRIPT_DIR/commands"
+LIB_DIR="$SCRIPT_DIR/lib"
+
+# Load configuration (for logging defaults and command enablement)
+source "$LIB_DIR/config.sh" || {
+    echo "Error: Failed to load config.sh" >&2
+    exit 1
+}
+gsg_load_config
 
 # Display usage information
 show_help() {
@@ -39,18 +47,23 @@ shift
 # Dispatch to the appropriate command script
 case "$COMMAND" in
     init)
+        gsg_require_command_enabled "init" || exit 1
         exec "$COMMANDS_DIR/init.sh" "$@"
         ;;
     add-key)
+        gsg_require_command_enabled "add-key" || exit 1
         exec "$COMMANDS_DIR/add-key.sh" "$@"
         ;;
     commit)
+        gsg_require_command_enabled "commit" || exit 1
         exec "$COMMANDS_DIR/commit.sh" "$@"
         ;;
     verify)
+        gsg_require_command_enabled "verify" || exit 1
         exec "$COMMANDS_DIR/verify.sh" "$@"
         ;;
     audit)
+        gsg_require_command_enabled "audit" || exit 1
         exec "$COMMANDS_DIR/audit.sh" "$@"
         ;;
     -h|--help)

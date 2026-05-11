@@ -10,7 +10,7 @@ echo "GitSafeGuard [pre-commit]: Checking signing configuration..."
 GPG_SIGN=$(git config --bool commit.gpgsign)
 
 if [[ "$GPG_SIGN" != "true" ]]; then
-    echo "❌ Error: GPG commit signing is not enabled."
+    echo "Error: GPG commit signing is not enabled."
     echo "To enforce security, all commits must be signed."
     echo "Run: './GitSafeGuard init' or 'git config commit.gpgsign true' to enable it."
     exit 1
@@ -20,11 +20,11 @@ fi
 GPG_KEY=$(git config --get user.signingkey)
 
 if [[ -z "$GPG_KEY" ]]; then
-    echo "❌ Error: No GPG signing key is configured for this repository."
+    echo "Error: No GPG signing key is configured for this repository."
     echo "Please set your key before committing."
     echo "Run: './GitSafeGuard add-key' to generate or configure a key."
     exit 1
 fi
 
-echo "✅ GitSafeGuard [pre-commit]: Configuration valid. Commit will be signed."
+echo "GitSafeGuard [pre-commit]: Configuration valid. Commit will be signed."
 exit 0

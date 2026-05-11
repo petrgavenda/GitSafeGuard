@@ -21,6 +21,12 @@ NUM_COMMITS=""
 OUTPUT_FILE=""
 
 # Source library modules
+source "$LIB_DIR/config.sh" || {
+    echo "Error: Failed to load config.sh" >&2
+    exit 1
+}
+gsg_load_config
+
 source "$LIB_DIR/log.sh" || {
     echo "Error: Failed to load log.sh" >&2
     exit 1
@@ -41,7 +47,7 @@ source "$LIB_DIR/verify.sh" || {
 # ============================================================================
 show_help() {
     cat << 'EOF'
-SecureGit - Repository Audit and Compliance
+GitSafeGuard - Repository Audit and Compliance
 
 Usage: audit.sh [options]
 
@@ -66,6 +72,17 @@ EOF
 # ============================================================================
 # Parse Arguments
 # ============================================================================
+require_arg() {
+    local option="$1"
+    local value="$2"
+
+    if [[ -z "$value" ]]; then
+        echo "Error: $option requires a value" >&2
+        show_help
+        exit 1
+    fi
+}
+
 parse_arguments() {
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -82,10 +99,12 @@ parse_arguments() {
                 shift
                 ;;
             -n|--number)
+                require_arg "$1" "${2-}"
                 NUM_COMMITS="$2"
                 shift 2
                 ;;
             -o|--output)
+                require_arg "$1" "${2-}"
                 OUTPUT_FILE="$2"
                 shift 2
                 ;;
@@ -133,7 +152,7 @@ generate_compliance_report() {
     # Header
     output_line ""
     output_line "================================"
-    output_line "SecureGit Audit Report"
+    output_line "GitSafeGuard Audit Report"
     output_line "$(date '+%Y-%m-%d %H:%M:%S')"
     output_line "================================"
     output_line ""
@@ -209,7 +228,7 @@ run_compliance_checks() {
 
     output_line ""
     output_line "================================"
-    output_line "SecureGit Compliance Checks"
+    output_line "GitSafeGuard Compliance Checks"
     output_line "$(date '+%Y-%m-%d %H:%M:%S')"
     output_line "================================"
     output_line ""
@@ -217,10 +236,10 @@ run_compliance_checks() {
     # Check 1: Repository is initialized
     output_line "[CHECK] Git repository initialized..."
     if is_git_repo; then
-        output_line "  ✓ PASS: Repository is valid"
+        output_line "  PASS: Repository is valid"
         ((checks_passed++))
     else
-        output_line "  ✗ FAIL: Not a valid git repository"
+        output_line "  FAIL: Not a valid git repository"
         ((checks_failed++))
     fi
 
@@ -230,10 +249,10 @@ run_compliance_checks() {
     local user_name
     user_name=$(git config user.name 2>/dev/null || echo "")
     if [[ -n "$user_name" ]]; then
-        output_line "  ✓ PASS: User name configured: $user_name"
+        output_line "  PASS: User name configured: $user_name"
         ((checks_passed++))
     else
-        output_line "  ✗ FAIL: User name not configured"
+        output_line "  FAIL: User name not configured"
         ((checks_failed++))
     fi
 
@@ -243,31 +262,33 @@ run_compliance_checks() {
     local gpg_config
     gpg_config=$(git config commit.gpgSign 2>/dev/null || echo "")
     if [[ "$gpg_config" == "true" ]]; then
-        output_line "  ✓ PASS: GPG signing enabled"
+        output_line "  PASS: GPG signing enabled"
         ((checks_passed++))
     else
-        output_line "  ✗ FAIL: GPG signing not configured"
+        output_line "  FAIL: GPG signing not configured"
         ((checks_failed++))
     fi
 
-    # Check 4: SecureGit configuration file exists
+    # Check 4: GitSafeGuard configuration file exists
     output_line ""
-    output_line "[CHECK] SecureGit configuration..."
-    if [[ -f ".securegit-config" ]]; then
-        output_line "  ✓ PASS: SecureGit configuration found"
+    output_line "[CHECK] GitSafeGuard configuration..."
+    local config_file="${GSG_DEFAULT_CONFIG_FILE:-.gitsafeguard-config}"
+    if [[ -f "$config_file" ]]; then
+        output_line "  PASS: GitSafeGuard configuration found"
         ((checks_passed++))
     else
-        output_line "  ⚠ WARN: SecureGit configuration not found"
+        output_line "  WARN: GitSafeGuard configuration not found"
     fi
 
     # Check 5: Authorized authors file exists
     output_line ""
     output_line "[CHECK] Authorized authors file..."
-    if [[ -f ".authorized-authors" ]]; then
-        output_line "  ✓ PASS: Authorized authors file found"
+    local authors_file="${GSG_DEFAULT_AUTHORS_FILE:-.authorized-authors}"
+    if [[ -f "$authors_file" ]]; then
+        output_line "  PASS: Authorized authors file found"
         ((checks_passed++))
     else
-        output_line "  ⚠ WARN: Authorized authors file not found"
+        output_line "  WARN: Authorized authors file not found"
     fi
 
     # Summary
@@ -302,12 +323,12 @@ scan_all_commits() {
 
     output_line ""
     output_line "================================"
-    output_line "SecureGit Commit Scan"
+    output_line "GitSafeGuard Commit Scan"
     output_line "$(date '+%Y-%m-%d %H:%M:%S')"
     output_line "================================"
     output_line ""
 
-    find_unsigned_commits "HEAD" "$NUM_COMMITS" || return 1
+    verify_unsigned_commits "HEAD" "$NUM_COMMITS" || return 1
 
     output_line ""
     if [[ -n "$OUTPUT_FILE" ]]; then
@@ -327,6 +348,10 @@ main() {
     fi
 
     parse_arguments "$@"
+
+    if ! gsg_require_command_enabled "audit"; then
+        exit 1
+    fi
 
     # If no action specified, show help
     if ! $GENERATE_REPORT && ! $RUN_CHECKS && ! $SCAN_COMMITS; then

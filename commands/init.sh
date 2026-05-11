@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# init.sh - Initialize SecureGit in repository
+# init.sh - Initialize GitSafeGuard in repository
 # Usage: ./init.sh [options]
 # Options:
 #   -p, --path DIR       Repository path (default: current directory)
@@ -17,6 +17,12 @@ GPG_KEY=""
 EMAIL=""
 
 # Source library modules
+source "$LIB_DIR/config.sh" || {
+    echo "Error: Failed to load config.sh" >&2
+    exit 1
+}
+gsg_load_config
+
 source "$LIB_DIR/log.sh" || {
     echo "Error: Failed to load log.sh" >&2
     exit 1
@@ -37,7 +43,7 @@ source "$LIB_DIR/gpg_utils.sh" || {
 # ============================================================================
 show_help() {
     cat << 'EOF'
-SecureGit - Initialize Secure Git Repository
+GitSafeGuard - Initialize Secure Git Repository
 
 Usage: init.sh [options]
 
@@ -58,18 +64,32 @@ EOF
 # ============================================================================
 # Parse Arguments
 # ============================================================================
+require_arg() {
+    local option="$1"
+    local value="$2"
+
+    if [[ -z "$value" ]]; then
+        echo "Error: $option requires a value" >&2
+        show_help
+        exit 1
+    fi
+}
+
 parse_arguments() {
     while [[ $# -gt 0 ]]; do
         case "$1" in
             -p|--path)
+                require_arg "$1" "${2-}"
                 REPO_PATH="$2"
                 shift 2
                 ;;
             -g|--gpg-key)
+                require_arg "$1" "${2-}"
                 GPG_KEY="$2"
                 shift 2
                 ;;
             -e|--email)
+                require_arg "$1" "${2-}"
                 EMAIL="$2"
                 shift 2
                 ;;
@@ -90,7 +110,7 @@ parse_arguments() {
 # Initialize Repository
 # ============================================================================
 initialize_repository() {
-    log_info "Starting SecureGit initialization..."
+    log_info "Starting GitSafeGuard initialization..."
 
     # Change to repository directory
     cd "$REPO_PATH" || {
@@ -133,34 +153,46 @@ initialize_repository() {
         fi
     fi
 
-    # Create SecureGit config file
-    if ! _create_securegit_config; then
-        log_error "Failed to create SecureGit configuration"
-        return 1
+    # Create GitSafeGuard config file
+    if [[ "${GSG_INIT_CREATE_CONFIG:-true}" == "true" ]]; then
+        if ! _create_gitsafeguard_config; then
+            log_error "Failed to create GitSafeGuard configuration"
+            return 1
+        fi
+    else
+        log_info "Skipping config creation (disabled by configuration)"
     fi
 
     # Install hooks
-    if ! _install_hooks; then
-        log_error "Failed to install git hooks"
-        return 1
+    if [[ "${GSG_INIT_INSTALL_HOOKS:-true}" == "true" ]]; then
+        if ! _install_hooks; then
+            log_error "Failed to install git hooks"
+            return 1
+        fi
+    else
+        log_info "Skipping hook installation (disabled by configuration)"
     fi
 
     # Create authorized authors file template
-    if ! _create_authorized_authors_file; then
-        log_warn "Failed to create authorized authors file"
+    if [[ "${GSG_INIT_CREATE_AUTHORS_FILE:-true}" == "true" ]]; then
+        if ! _create_authorized_authors_file; then
+            log_warn "Failed to create authorized authors file"
+        fi
+    else
+        log_info "Skipping authorized authors file creation (disabled by configuration)"
     fi
 
-    log_info "SecureGit initialization completed successfully!"
+    log_info "GitSafeGuard initialization completed successfully!"
     return 0
 }
 
 # ============================================================================
-# Create SecureGit Configuration
+# Create GitSafeGuard Configuration
 # ============================================================================
-_create_securegit_config() {
-    local config_file=".securegit-config"
+_create_gitsafeguard_config() {
+    local config_file="${GSG_DEFAULT_CONFIG_FILE:-.gitsafeguard-config}"
 
-    log_debug "Creating SecureGit configuration file..."
+    log_debug "Creating GitSafeGuard configuration file..."
 
     if [[ -f "$config_file" ]]; then
         log_warn "Configuration file already exists: $config_file"
@@ -168,7 +200,7 @@ _create_securegit_config() {
     fi
 
     cat > "$config_file" << 'EOF'
-# SecureGit Configuration
+# GitSafeGuard Configuration
 
 # Policy: Require GPG signatures on all commits
 REQUIRE_GPG_SIGNATURE=true
@@ -239,7 +271,7 @@ _install_hooks() {
 # Create Authorized Authors File
 # ============================================================================
 _create_authorized_authors_file() {
-    local authors_file=".authorized-authors"
+    local authors_file="${GSG_DEFAULT_AUTHORS_FILE:-.authorized-authors}"
 
     log_debug "Creating authorized authors file..."
 
@@ -266,6 +298,10 @@ _create_authorized_authors_file() {
 # ============================================================================
 main() {
     parse_arguments "$@"
+
+    if ! gsg_require_command_enabled "init"; then
+        exit 1
+    fi
     
     if ! initialize_repository; then
         log_error "Initialization failed"

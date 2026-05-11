@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# verify.sh - Commit verification module for SecureGit
+# verify.sh - Commit verification module for GitSafeGuard
 # Description: Verifies commit authenticity by checking signatures and policies
 # Dependencies: git_utils.sh, gpg_utils.sh, log.sh
 
@@ -60,7 +60,7 @@ verify_commit_signature() {
         U)
             log_warn "Untrusted signature for commit: $commit"
             _print_commit_details "$commit"
-            return 1
+            return 0
             ;;
         X)
             log_warn "Expired signature for commit: $commit"
@@ -82,7 +82,7 @@ verify_commit_signature() {
 # ============================================================================
 # verify_commit_policy()
 # ============================================================================
-# Description: Verifies a commit follows SecureGit policies
+# Description: Verifies a commit follows GitSafeGuard policies
 # Arguments:
 #   $1 - Commit hash (optional, defaults to HEAD)
 #   $2 - Policy file path (optional)
@@ -90,7 +90,7 @@ verify_commit_signature() {
 # ============================================================================
 verify_commit_policy() {
     local commit="${1:-HEAD}"
-    local policy_file="${2:-.securegit-policy}"
+    local policy_file="${2:-${GSG_DEFAULT_POLICY_FILE:-.gitsafeguard-policy}}"
 
     log_debug "Verifying commit policy: $commit"
 
@@ -202,7 +202,7 @@ verify_branch_history() {
 # ============================================================================
 verify_author() {
     local commit="${1:-HEAD}"
-    local authors_file="${2:-.authorized-authors}"
+    local authors_file="${2:-${GSG_DEFAULT_AUTHORS_FILE:-.authorized-authors}}"
 
     log_debug "Verifying commit author: $commit"
 

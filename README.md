@@ -1,70 +1,50 @@
 # GitSafeGuard
 
-GitSafeGuard is a small command-line tool for GPG-signed Git workflows, commit verification, and repository audits.
+CLI for GPG-signed Git workflows: init, key management, signed commits, verification, audits.
 
 ## Requirements
 
-- `git`
-- `gpg`
-- `bash`
+- git 2.x
+- gpg 2.x
+- bash (Git Bash or WSL on Windows)
+- python or jq (optional, for config parsing)
 
-## Quick Start
-
-Make the scripts executable if needed:
+## Install
 
 ```bash
-chmod +x GitSafeGuard commands/*.sh lib/*.sh
+chmod +x GitSafeGuard commands/*.sh lib/*.sh hooks/*
 ```
 
-Initialize GitSafeGuard in a repository:
+## Usage
 
 ```bash
 ./GitSafeGuard init --path .
-```
-
-## Commands
-
-### Add or manage GPG keys
-
-```bash
 ./GitSafeGuard add-key --list
 ./GitSafeGuard add-key --generate
 ./GitSafeGuard add-key --configure KEY_ID
 ./GitSafeGuard add-key --export KEY_ID --output my-key.pub
-```
-
-### Create a signed commit
-
-```bash
 ./GitSafeGuard commit --message "feat: add secure commit flow" --all
-```
-
-### Verify commits
-
-```bash
-./GitSafeGuard verify
 ./GitSafeGuard verify --commit HEAD
 ./GitSafeGuard verify --branch main
 ./GitSafeGuard verify --unsigned
-```
-
-### Audit a repository
-
-```bash
 ./GitSafeGuard audit --report
 ./GitSafeGuard audit --check
 ./GitSafeGuard audit --scan --number 100
 ```
 
-## Files
+Use `./GitSafeGuard <command> --help` for full options.
 
-- `GitSafeGuard` - Main CLI entry script
-- `config/config.json` - integrated configuration
-- `lib/` - reusable bash modules
-- `commands/` - CLI entry points
-- `hooks/` - hook templates
+## Configuration
 
-## Notes
+- config/config.json is the default config file
+- Set GITSAFEGUARD_CONFIG_FILE to override the config path
+- init writes .gitsafeguard-config and .authorized-authors, installs hooks in .git/hooks
+- git user.name and user.email are required for commits
 
-- The tool expects Git user identity to be configured.
-- GitSafeGuard is designed to enforce signed commits and verify repository compliance.
+## Layout
+
+- GitSafeGuard (CLI entry)
+- config/config.json (configuration)
+- commands/ (command scripts)
+- lib/ (shared modules)
+- hooks/ (hook templates)

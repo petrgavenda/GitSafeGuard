@@ -19,6 +19,12 @@ KEY=""
 STAGE_ALL=false
 
 # Source library modules
+source "$LIB_DIR/config.sh" || {
+    echo "Error: Failed to load config.sh" >&2
+    exit 1
+}
+gsg_load_config
+
 source "$LIB_DIR/log.sh" || {
     echo "Error: Failed to load log.sh" >&2
     exit 1
@@ -39,7 +45,7 @@ source "$LIB_DIR/gpg_utils.sh" || {
 # ============================================================================
 show_help() {
     cat << 'EOF'
-SecureGit - Make Secure Signed Commits
+GitSafeGuard - Make Secure Signed Commits
 
 Usage: commit.sh [options]
 
@@ -62,14 +68,27 @@ EOF
 # ============================================================================
 # Parse Arguments
 # ============================================================================
+require_arg() {
+    local option="$1"
+    local value="$2"
+
+    if [[ -z "$value" ]]; then
+        echo "Error: $option requires a value" >&2
+        show_help
+        exit 1
+    fi
+}
+
 parse_arguments() {
     while [[ $# -gt 0 ]]; do
         case "$1" in
             -m|--message)
+                require_arg "$1" "${2-}"
                 COMMIT_MESSAGE="$2"
                 shift 2
                 ;;
             -f|--file)
+                require_arg "$1" "${2-}"
                 MESSAGE_FILE="$2"
                 shift 2
                 ;;
@@ -78,6 +97,7 @@ parse_arguments() {
                 shift
                 ;;
             -k|--key)
+                require_arg "$1" "${2-}"
                 KEY="$2"
                 shift 2
                 ;;
@@ -127,7 +147,7 @@ validate_environment() {
 
     if [[ "$gpg_sign_config" != "true" ]]; then
         log_warn "GPG signing not configured for this repository"
-        echo "Consider running: init.sh to configure SecureGit"
+        echo "Consider running: init.sh to configure GitSafeGuard"
     fi
 
     return 0
@@ -156,6 +176,41 @@ get_commit_message() {
     log_error "Commit message is required"
     show_help
     return 1
+}
+
+# ============================================================================
+# Validate Commit Message
+# ============================================================================
+validate_commit_message() {
+    local message="$1"
+    local min_length="${GSG_COMMIT_MIN_LENGTH:-5}"
+    local max_length="${GSG_COMMIT_MAX_LENGTH:-0}"
+    local pattern="${GSG_COMMIT_PATTERN:-}"
+    local validate_enabled="${GSG_COMMIT_VALIDATE_ENABLED:-false}"
+
+    if [[ -z "$message" ]]; then
+        log_error "Commit message is empty"
+        return 1
+    fi
+
+    if [[ "$min_length" =~ ^[0-9]+$ ]] && [[ ${#message} -lt $min_length ]]; then
+        log_error "Commit message too short (minimum $min_length characters)"
+        return 1
+    fi
+
+    if [[ "$max_length" =~ ^[0-9]+$ ]] && [[ $max_length -gt 0 && ${#message} -gt $max_length ]]; then
+        log_error "Commit message too long (maximum $max_length characters)"
+        return 1
+    fi
+
+    if [[ "$validate_enabled" == "true" && -n "$pattern" ]]; then
+        if [[ ! "$message" =~ $pattern ]]; then
+            log_error "Commit message does not match policy pattern. Correct input:"
+            return 1
+        fi
+    fi
+
+    return 0
 }
 
 # ============================================================================
@@ -189,16 +244,9 @@ make_commit() {
         return 1
     }
 
-    if [[ -z "$message" ]]; then
-        log_error "Commit message is empty"
-        return 1
-    fi
-
     log_debug "Message length: ${#message} characters"
 
-    # Validate message is not too short
-    if [[ ${#message} -lt 5 ]]; then
-        log_error "Commit message too short (minimum 5 characters)"
+    if ! validate_commit_message "$message"; then
         return 1
     fi
 
@@ -253,6 +301,10 @@ make_commit() {
 # ============================================================================
 main() {
     parse_arguments "$@"
+
+    if ! gsg_require_command_enabled "commit"; then
+        exit 1
+    fi
 
     if ! validate_environment; then
         exit 1

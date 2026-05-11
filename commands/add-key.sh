@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# add-key.sh - Manage GPG keys for SecureGit
+# add-key.sh - Manage GPG keys for GitSafeGuard
 # Usage: ./add-key.sh [options]
 # Options:
 #   -l, --list           List all available GPG keys
@@ -21,6 +21,12 @@ EMAIL=""
 OUTPUT_FILE=""
 
 # Source library modules
+source "$LIB_DIR/config.sh" || {
+    echo "Error: Failed to load config.sh" >&2
+    exit 1
+}
+gsg_load_config
+
 source "$LIB_DIR/log.sh" || {
     echo "Error: Failed to load log.sh" >&2
     exit 1
@@ -36,7 +42,7 @@ source "$LIB_DIR/gpg_utils.sh" || {
 # ============================================================================
 show_help() {
     cat << 'EOF'
-SecureGit - Manage GPG Keys
+GitSafeGuard - Manage GPG Keys
 
 Usage: add-key.sh [options]
 
@@ -62,6 +68,17 @@ EOF
 # ============================================================================
 # Parse Arguments
 # ============================================================================
+require_arg() {
+    local option="$1"
+    local value="$2"
+
+    if [[ -z "$value" ]]; then
+        echo "Error: $option requires a value" >&2
+        show_help
+        exit 1
+    fi
+}
+
 parse_arguments() {
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -83,15 +100,18 @@ parse_arguments() {
                 fi
                 ;;
             -e|--email)
+                require_arg "$1" "${2-}"
                 EMAIL="$2"
                 shift 2
                 ;;
             -x|--export)
+                require_arg "$1" "${2-}"
                 COMMAND="export"
                 GPG_KEY="$2"
                 shift 2
                 ;;
             -o|--output)
+                require_arg "$1" "${2-}"
                 OUTPUT_FILE="$2"
                 shift 2
                 ;;
@@ -243,6 +263,10 @@ main() {
     fi
 
     parse_arguments "$@"
+
+    if ! gsg_require_command_enabled "add-key"; then
+        exit 1
+    fi
 
     case "${COMMAND:-list}" in
         list)

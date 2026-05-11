@@ -23,6 +23,12 @@ FIND_UNSIGNED=false
 NUM_COMMITS=""
 
 # Source library modules
+source "$LIB_DIR/config.sh" || {
+    echo "Error: Failed to load config.sh" >&2
+    exit 1
+}
+gsg_load_config
+
 source "$LIB_DIR/log.sh" || {
     echo "Error: Failed to load log.sh" >&2
     exit 1
@@ -43,14 +49,14 @@ source "$LIB_DIR/verify.sh" || {
 # ============================================================================
 show_help() {
     cat << 'EOF'
-SecureGit - Verify Commit Signatures
+GitSafeGuard - Verify Commit Signatures
 
 Usage: verify.sh [options]
 
 Options:
   -c, --commit HASH    Verify specific commit (default: HEAD)
   -b, --branch BRANCH  Verify all commits on branch
-  -p, --policy         Check commit against SecureGit policy
+    -p, --policy         Check commit against GitSafeGuard policy
   -a, --all            Verify entire repository history
   -u, --unsigned       Find unsigned commits on branch
   -n, --number COUNT   Number of commits to check
@@ -70,14 +76,27 @@ EOF
 # ============================================================================
 # Parse Arguments
 # ============================================================================
+require_arg() {
+    local option="$1"
+    local value="$2"
+
+    if [[ -z "$value" ]]; then
+        echo "Error: $option requires a value" >&2
+        show_help
+        exit 1
+    fi
+}
+
 parse_arguments() {
     while [[ $# -gt 0 ]]; do
         case "$1" in
             -c|--commit)
+                require_arg "$1" "${2-}"
                 COMMIT="$2"
                 shift 2
                 ;;
             -b|--branch)
+                require_arg "$1" "${2-}"
                 BRANCH="$2"
                 shift 2
                 ;;
@@ -94,6 +113,7 @@ parse_arguments() {
                 shift
                 ;;
             -n|--number)
+                require_arg "$1" "${2-}"
                 NUM_COMMITS="$2"
                 shift 2
                 ;;
@@ -137,7 +157,7 @@ verify_single_commit() {
 # ============================================================================
 # Verify Branch History
 # ============================================================================
-verify_branch_history() {
+verify_branch_history_cmd() {
     local branch="${1:-.}"
     local num_commits="$NUM_COMMITS"
 
@@ -194,7 +214,7 @@ generate_report() {
     log_info "Generating verification report..."
     echo ""
     echo "================================"
-    echo "SecureGit Verification Report"
+    echo "GitSafeGuard Verification Report"
     echo "================================"
     echo ""
 
@@ -233,9 +253,13 @@ main() {
 
     parse_arguments "$@"
 
+    if ! gsg_require_command_enabled "verify"; then
+        exit 1
+    fi
+
     # Default to verifying HEAD if no options specified
     if [[ -z "$COMMIT" && -z "$BRANCH" && "$VERIFY_ALL" == "false" && "$FIND_UNSIGNED" == "false" ]]; then
-        COMMIT="HEAD"
+        COMMIT="${GSG_VERIFY_DEFAULT_COMMIT:-HEAD}"
     fi
 
     if $VERIFY_ALL; then
@@ -244,7 +268,7 @@ main() {
     elif $FIND_UNSIGNED; then
         find_unsigned_commits "${BRANCH:-HEAD}" || exit 1
     elif [[ -n "$BRANCH" ]]; then
-        verify_branch_history "$BRANCH" || exit 1
+        verify_branch_history_cmd "$BRANCH" || exit 1
     else
         verify_single_commit "$COMMIT" || exit 1
     fi

@@ -1,14 +1,14 @@
 #!/bin/bash
 
-# log.sh - Logging utility for SecureGit
+# log.sh - Logging utility for GitSafeGuard
 # Description: Provides reusable logging functions with different severity levels
-# Log file location: logs/securegit.log.sh
+# Log file location: logs/gitsafeguard.log
 
 # ============================================================================
 # Configuration
 # ============================================================================
-LOG_DIR="${LOG_DIR:-.}/logs"
-LOG_FILE="${LOG_DIR}/securegit.log.sh"
+LOG_DIR="${LOG_DIR:-./logs}"
+LOG_FILE="${LOG_FILE:-${LOG_DIR}/gitsafeguard.log}"
 LOG_LEVEL="${LOG_LEVEL:-INFO}"  # DEBUG, INFO, WARN, ERROR
 
 # Log levels

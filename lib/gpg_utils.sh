@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# gpg_utils.sh - GPG utility functions for SecureGit
+# gpg_utils.sh - GPG utility functions for GitSafeGuard
 # Description: Provides functions to manage GPG keys and sign commits
 # Dependencies: gpg, git, log.sh
 

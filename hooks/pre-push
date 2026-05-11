@@ -35,17 +35,17 @@ do
         
         if [[ "$sig_status" != "G" && "$sig_status" != "U" ]]; then
             echo ""
-            echo "❌ Error: Invalid or missing GPG signature found on outgoing commit!"
+            echo "Error: Invalid or missing GPG signature found on outgoing commit."
             echo "   Commit: $commit"
             echo "   Author: $author"
             echo "   Subject: $subject"
             echo "   Status: $sig_status (Must be G or U)"
-            echo "   -> Push aborted by GitSafeGuard."
+            echo "   Push aborted by GitSafeGuard."
             echo ""
             exit 1
         fi
     done
 done
 
-echo "✅ GitSafeGuard [pre-push]: All outgoing commits are securely signed."
+echo "GitSafeGuard [pre-push]: All outgoing commits are securely signed."
 exit 0
