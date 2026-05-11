@@ -6,7 +6,6 @@ CLI for GPG-signed Git workflows: init, key management, signed commits, verifica
 
 - git 2.x
 - gpg 2.x
-- bash (Git Bash or WSL on Windows)
 - python or jq (optional, for config parsing)
 
 ## Install
@@ -48,3 +47,4 @@ Use `./GitSafeGuard <command> --help` for full options.
 - commands/ (command scripts)
 - lib/ (shared modules)
 - hooks/ (hook templates)
+- logs/ (saves logs output)
